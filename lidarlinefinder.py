@@ -5,6 +5,17 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 import time
+'''
+TODO:
+    ideas: 
+        1. prune lines that are too close to eachother
+        2. after 10 iterations, add everything to the same cluster and try to do clustering again
+        3. seperate line into segments if the point projections onto like line using transform_points()
+'''
+
+
+
+
 
 class Line3D:
     def __init__(self, start, end):
@@ -123,10 +134,22 @@ class KNN:
             
 Variance = 1
 line = Line3D([30,0,0], [0,0,0])
+line2 = Line3D([10, 10, 10], [5,15,12])
 p = line.generate_pts_from_line(0.1, Variance)
+p2 = line2.generate_pts_from_line(0.1, Variance)
 
-classifier = KNN(p, Variance, 0.9, 1)
-for i in range(10):
+
+
+
+pointcloud = np.concatenate((np.array(p), np.array(p2)))
+pointcloud = Points(pointcloud)
+print(pointcloud.size, p.size, p2.size)
+fig = plt.figure(0)
+ax = fig.add_subplot(111,projection='3d') 
+pointcloud.plot_3d(ax, c='b',depthshade=False)
+
+classifier = KNN(pointcloud, Variance, 0.9, 1)
+for i in range(1,11):
     plt.figure(i)
     fig = plt.figure() 
     ax = fig.add_subplot(111,projection='3d') 
@@ -134,13 +157,14 @@ for i in range(10):
     ax.axes.set_ylim3d(bottom=-10, top=10) 
     ax.axes.set_zlim3d(bottom=-10, top=10) 
     classifier.fit()
-    line = classifier.lines[0]
-    points = Points(classifier.line_pointclouds[classifier.lines[0]])
+    for l in classifier.lines:
+        points = Points(classifier.line_pointclouds[l])
+        l.skLine.plot_3d(ax, t_1=0, t_2=line.length, c='y')
+        points.plot_3d(ax, c='r', depthshade=False)
+        print(l.length, l.s, l.e)
     unused_points = Points(classifier.unused_points)
-    line.skLine.plot_3d(ax, t_1=0, t_2=line.length, c='y')
-    points.plot_3d(ax, c='r', depthshade=False)
     unused_points.plot_3d(ax, c='b',depthshade=False)
-    print(line.length, line.s, line.e)
+    print(unused_points.size)
 
 
 plt.show()
