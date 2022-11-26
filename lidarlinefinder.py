@@ -1,4 +1,5 @@
-from skspatial.objects import Line, Points
+from skspatial.objects import Line, Points, LineSegment
+import scipy.stats
 from skspatial.plotting import plot_3d
 import numpy as np
 import math
@@ -45,71 +46,114 @@ class Line3D:
         return Points(points)
 
 class KNN:
-  def __init__(self, pointcloud, num_lines = 1) -> None:
-    self.pointcloud = pointcloud
+    def __init__(self, pointcloud, variance, probability = 0.9, num_lines = 1) -> None:
+        
+        self.total_iterations = 0
+        self.pointcloud = pointcloud
+        
+        self.lines = []
+        self.line_pointclouds = {}
+        self.unused_points = []
 
-    self.lines = []
-    for i in range(num_lines):
-      self.lines.append(self.init_line())
-  
-  def init_line(self):
-    selection = np.random.choice(self.pointcloud.shape[0], 2, replace = False)
-    return Line3D(self.pointcloud[selection[0]], self.pointcloud[selection[1]])
-  
-  def get_dist(self, point, line):
+        self.v = variance
+        self.prob = probability
 
-    p = line.skLine.project_point(point)
+        self.nd = scipy.stats.norm(0, math.sqrt(variance))
+        for i in range(num_lines):
+            self.lines.append(self.init_line())
+            self.line_pointclouds[self.lines[-1]] = np.array([])
 
-    vec_s = p-line.s
-    vec_e = p-line.e
-    d_product = np.dot(vec_s, vec_e)
-    if d_product< 0:
-      dist = line.skLine.distance_point(point)
-    else:
-      dist = min(np.linalg.norm(point-line.s), np.linalg.norm(point-line.e))
+    def init_line(self):
+        selection = np.random.choice(self.pointcloud.shape[0], 2, replace = False)
+        return Line3D(self.pointcloud[selection[0]], self.pointcloud[selection[1]])
 
-    return dist
+    def get_dist(self, point, line):
 
+        p = line.skLine.project_point(point)
+
+        vec_s = p-line.s
+        vec_e = p-line.e
+        d_product = np.dot(vec_s, vec_e)
+        if d_product< 0:
+            dist = line.skLine.distance_point(point)
+        else:
+            dist = min(np.linalg.norm(point-line.s), np.linalg.norm(point-line.e))
+        return dist
+    
+    def include_criteria(self, dist, line, point):
+        prob = self.nd.pdf(dist)
+        if prob > 1-self.prob:
+            return True
+        else:
+            return False
+
+    def fit(self, iterations = 1):
+        for i in range(iterations):
+            self.point_segmentation()
+            self.update_lines()
+            self.total_iterations += 1
+    
+    def point_segmentation(self):
+        for ptcld in self.line_pointclouds:
+            self.line_pointclouds[ptcld] = []
+        self.unused_points = []
+        for p in self.pointcloud:
+            dists = []
+            for i, l in enumerate(self.lines):
+                dists.append(self.get_dist(p, l))
+            
+            tmp = min(dists)
+            if self.include_criteria(tmp, self.lines[dists.index(tmp)], p):
+                self.line_pointclouds[self.lines[dists.index(tmp)]].append(p)
+            else:
+                self.unused_points.append(p)
+    
+    def update_lines(self):
+        for line in self.line_pointclouds:
+            points = Points(self.line_pointclouds[line])
+            lobf = Line.best_fit(points)
+            
+            dists = lobf.transform_points(points)
+            min_dist = min(dists)
+            max_dist = max(dists)
+            start = lobf.point+lobf.direction*min_dist
+            end = lobf.point+lobf.direction*max_dist
+
+            line.update_line(start, end)
+            
+Variance = 1
 line = Line3D([30,0,0], [0,0,0])
-p = line.generate_pts_from_line(0.1, 0.001)
+p = line.generate_pts_from_line(0.1, Variance)
+# fig = plt.figure() 
+# ax = fig.add_subplot(111,projection='3d') 
+# ax.axes.set_xlim3d(left=0.2, right=9.8) 
+# ax.axes.set_ylim3d(bottom=0.2, top=9.8) 
+# ax.axes.set_zlim3d(bottom=0.2, top=9.8) 
+
 plot_3d(
-    line.skLine.plotter(t_1=0, t_2=7, c='y'),
+    line.skLine.plotter(t_1=0, t_2=line.length, c='y'),
     p.plotter(c='b', depthshade=False),
-
 )
-
-print(p.shape)
-
-classifier = KNN(p, 1)
-print(p[10], classifier.get_dist([-1,0,0], line))
-print(line.skLine.distance_point(p[10]))
-
-#test code to see points
-points = Points(
-    [
-        [0, 0, 0],
-        [1, 1, 0],
-        [2, 3, 2],
-        [3, 2, 3],
-        [4, 5, 4],
-        [6, 5, 5],
-        [6, 6, 5],
-        [7, 6, 7],
-    ],
-)
+classifier = KNN(p, Variance, 0.9, 1)
+for i in range(10):
+    plt.figure(i)
+    classifier.fit()
+    line = classifier.lines[0]
+    points = Points(classifier.line_pointclouds[classifier.lines[0]])
+    print(len(points))
+    unused_points = Points(classifier.unused_points)
+    print(len(unused_points))
+    plot_3d(
+        line.skLine.plotter(t_1=0, t_2=line.length, c='y'),
+        points.plotter(c='r', depthshade=False),
+        unused_points.plotter(c='b',depthshade=False)
+    )
+    print(line.length, line.s, line.e)
 
 
-t1 = time.time()
-line_fit = Line.best_fit(points)
-print("best fit line took:", time.time()-t1)
-
-print(line_fit.direction)
-print(line_fit.point)
 
 
-plot_3d(
-    line_fit.plotter(t_1=0, t_2=7, c='y'),
-    points.plotter(c='b', depthshade=False),
 
-)
+
+
 plt.show()
