@@ -124,36 +124,23 @@ class KNN:
 Variance = 1
 line = Line3D([30,0,0], [0,0,0])
 p = line.generate_pts_from_line(0.1, Variance)
-# fig = plt.figure() 
-# ax = fig.add_subplot(111,projection='3d') 
-# ax.axes.set_xlim3d(left=0.2, right=9.8) 
-# ax.axes.set_ylim3d(bottom=0.2, top=9.8) 
-# ax.axes.set_zlim3d(bottom=0.2, top=9.8) 
 
-plot_3d(
-    line.skLine.plotter(t_1=0, t_2=line.length, c='y'),
-    p.plotter(c='b', depthshade=False),
-)
 classifier = KNN(p, Variance, 0.9, 1)
 for i in range(10):
     plt.figure(i)
+    fig = plt.figure() 
+    ax = fig.add_subplot(111,projection='3d') 
+    ax.axes.set_xlim3d(left=-5, right=35) 
+    ax.axes.set_ylim3d(bottom=-10, top=10) 
+    ax.axes.set_zlim3d(bottom=-10, top=10) 
     classifier.fit()
     line = classifier.lines[0]
     points = Points(classifier.line_pointclouds[classifier.lines[0]])
-    print(len(points))
     unused_points = Points(classifier.unused_points)
-    print(len(unused_points))
-    plot_3d(
-        line.skLine.plotter(t_1=0, t_2=line.length, c='y'),
-        points.plotter(c='r', depthshade=False),
-        unused_points.plotter(c='b',depthshade=False)
-    )
+    line.skLine.plot_3d(ax, t_1=0, t_2=line.length, c='y')
+    points.plot_3d(ax, c='r', depthshade=False)
+    unused_points.plot_3d(ax, c='b',depthshade=False)
     print(line.length, line.s, line.e)
-
-
-
-
-
 
 
 plt.show()
