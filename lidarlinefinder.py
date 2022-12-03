@@ -179,7 +179,10 @@ class KNN:
             self.prune_lines()
             if self.check_lines_settle():
                 print("_______________generate new line_______________")
-            #     self.line_from_all_unused()
+                self.line_from_all_unused()
+                self.point_segmentation()
+                self.update_lines()
+                self.segment_line()
             self.used_points = self.tally_used_points()
             print(self.used_points)
     
@@ -217,6 +220,7 @@ class KNN:
                 line.update_line(start, end)
         for l in destructable_lines:
             self.destruct_line(l)
+    
     def destruct_line(self, l):
         self.lines.remove(l)
         del self.line_pointclouds[l]
@@ -340,11 +344,20 @@ fig = plt.figure(0)
 ax = fig.add_subplot(111,projection='3d') 
 pointcloud.plot_3d(ax, c='b',depthshade=False)
 
+<<<<<<< Updated upstream
 classifier = KNN(pointcloud, Variance, 0.975, 6)
+=======
+classifier = KNN(pointcloud, Variance, 0.975, 1)
+fig = plt.figure(1) 
+ax = fig.add_subplot(111,projection='3d') 
+ax.axes.set_xlim3d(left=-5, right=35) 
+ax.axes.set_ylim3d(bottom=-10, top=10) 
+ax.axes.set_zlim3d(bottom=-10, top=10)
+>>>>>>> Stashed changes
 for l in classifier.lines:
     l.skLine.plot_3d(ax, t_1=0, t_2=l.length, c='y')
 pointcloud.plot_3d(ax, c='b',depthshade=False)
-for i in range(1,7):
+for i in range(1,15):
     plt.figure(i)
     fig = plt.figure() 
     ax = fig.add_subplot(111,projection='3d') 
@@ -355,11 +368,19 @@ for i in range(1,7):
     for l in classifier.lines:
         points = Points(classifier.line_pointclouds[l])
         l.skLine.plot_3d(ax, t_1=0, t_2=l.length, c='y')
+<<<<<<< Updated upstream
     #     #points.plot_3d(ax, c='r', depthshade=False)
     #     print(l.length, l.s, l.e)
     # if not classifier.unused_points == []:
     #     unused_points = Points(classifier.unused_points)
     #     unused_points.plot_3d(ax, c='b',depthshade=False)
+=======
+        points.plot_3d(ax, c='r', s=1, depthshade=False)
+        print(l.length, l.s, l.e)
+    if not classifier.unused_points == []:
+        unused_points = Points(classifier.unused_points)
+        unused_points.plot_3d(ax, c='b', s=1, depthshade=False)
+>>>>>>> Stashed changes
 
 
 fig = plt.figure(100) 
