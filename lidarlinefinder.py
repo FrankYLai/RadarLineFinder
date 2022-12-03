@@ -5,6 +5,7 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 import time
+import itertools
 '''
 TODO:
     ideas: 
@@ -56,6 +57,29 @@ class Line3D:
         
         return Points(points)
 
+    def get_dist(self, point):
+
+        p = self.skLine.project_point(point)
+
+        vec_s = p-self.s
+        vec_e = p-self.e
+        d_product = np.dot(vec_s, vec_e)
+        if d_product < 0:
+            dist = self.skLine.distance_point(point)
+        else:
+            dist = min(np.linalg.norm(point-self.s), np.linalg.norm(point-self.e))
+        return dist
+
+    def isclose(self, other):
+        return np.allclose(self.direction, other.direction,atol=1) and (self.get_dist(other.s) < 1 or self.get_dist(other.e) < 1)
+    
+    
+    def __eq__(self,other):
+        return isinstance(other,Line3D) and np.all(self.s == other.s) and np.all(self.e == other.e)
+
+    def __hash__(self):
+        return id(self)
+
 class KNN:
     def __init__(self, pointcloud, variance, probability = 0.9, num_lines = 1) -> None:
         
@@ -90,7 +114,7 @@ class KNN:
         vec_s = p-line.s
         vec_e = p-line.e
         d_product = np.dot(vec_s, vec_e)
-        if d_product< 0:
+        if d_product < 0:
             dist = line.skLine.distance_point(point)
         else:
             dist = min(np.linalg.norm(point-line.s), np.linalg.norm(point-line.e))/2
@@ -152,6 +176,7 @@ class KNN:
             self.point_segmentation()
             self.update_lines()
             self.segment_line()
+            self.prune_lines()
             if self.check_lines_settle():
                 print("_______________generate new line_______________")
             #     self.line_from_all_unused()
@@ -261,30 +286,61 @@ class KNN:
         for l in new_lines:
             self.line_pointclouds[l] = new_lines[l]
 
+    def prune_lines(self):
+        del_list = []
+        chosen_line = None
+        for (ix, x), (iy, y) in itertools.combinations(enumerate(self.line_pointclouds),2):
+            if x == y:
+                print("2 lines are equal")
+                if chosen_line == None:
+                    chosen_line = x
+                    if y not in del_list:
+                        del_list.append(y)
+                elif chosen_line == x:
+                    if y not in del_list:
+                        del_list.append(y)
+
+            elif x.isclose(y):
+                print("Lines are close")
+                if chosen_line == None:
+                    chosen_line = x
+                    if y not in del_list:
+                        del_list.append(y)
+                elif chosen_line == x:
+                    if y not in del_list:
+                        del_list.append(y)
+        for item in del_list:
+            self.line_pointclouds[chosen_line].extend(self.line_pointclouds[item])
+            self.destruct_line(item)
+            start, end = self.start_end_from_ptcld(self.line_pointclouds[chosen_line])
+            chosen_line.update_line(start, end)
+
             
 Variance = 0.5
 line = Line3D([30,0,0], [0,0,0])
 line2 = Line3D([5, 5, 3], [5,9,8])
 line3 = Line3D([20, -9, -3], [25,-3,-9])
+
+line4 = Line3D([15,10,0], [20,35,0])
+line5 = Line3D([-10, 3, 40], [-2,3,25])
+line6 = Line3D([2, -20, -13], [-13,1,-10])
 p = line.generate_pts_from_line(0.1, Variance)
 p2 = line2.generate_pts_from_line(0.1, Variance)
 p3 = line3.generate_pts_from_line(0.1, Variance)
 
+p4 = line4.generate_pts_from_line(0.1, Variance)
+p5 = line5.generate_pts_from_line(0.1, Variance)
+p6 = line6.generate_pts_from_line(0.1, Variance)
 
 
-pointcloud = np.concatenate((np.array(p), np.array(p2), np.array(p3)))
+pointcloud = np.concatenate((np.array(p), np.array(p2),np.array(p3),np.array(p4),np.array(p5), np.array(p6)))
 # pointcloud = np.array(p)
 pointcloud = Points(pointcloud)
 fig = plt.figure(0)
 ax = fig.add_subplot(111,projection='3d') 
 pointcloud.plot_3d(ax, c='b',depthshade=False)
 
-classifier = KNN(pointcloud, Variance, 0.975, 4)
-fig = plt.figure(1) 
-ax = fig.add_subplot(111,projection='3d') 
-ax.axes.set_xlim3d(left=-5, right=35) 
-ax.axes.set_ylim3d(bottom=-10, top=10) 
-ax.axes.set_zlim3d(bottom=-10, top=10)
+classifier = KNN(pointcloud, Variance, 0.975, 6)
 for l in classifier.lines:
     l.skLine.plot_3d(ax, t_1=0, t_2=l.length, c='y')
 pointcloud.plot_3d(ax, c='b',depthshade=False)
@@ -292,19 +348,27 @@ for i in range(1,7):
     plt.figure(i)
     fig = plt.figure() 
     ax = fig.add_subplot(111,projection='3d') 
-    ax.axes.set_xlim3d(left=-5, right=35) 
-    ax.axes.set_ylim3d(bottom=-10, top=10) 
-    ax.axes.set_zlim3d(bottom=-10, top=10) 
+    ax.axes.set_xlim3d(left=-50, right=50) 
+    ax.axes.set_ylim3d(bottom=-50, top=50) 
+    ax.axes.set_zlim3d(bottom=-50, top=50) 
     classifier.fit()
     for l in classifier.lines:
         points = Points(classifier.line_pointclouds[l])
         l.skLine.plot_3d(ax, t_1=0, t_2=l.length, c='y')
-        points.plot_3d(ax, c='r', depthshade=False)
-        print(l.length, l.s, l.e)
-    if not classifier.unused_points == []:
-        unused_points = Points(classifier.unused_points)
-        unused_points.plot_3d(ax, c='b',depthshade=False)
+    #     #points.plot_3d(ax, c='r', depthshade=False)
+    #     print(l.length, l.s, l.e)
+    # if not classifier.unused_points == []:
+    #     unused_points = Points(classifier.unused_points)
+    #     unused_points.plot_3d(ax, c='b',depthshade=False)
 
 
+fig = plt.figure(100) 
+ax = fig.add_subplot(111,projection='3d') 
 
+ax.axes.set_xlim3d(left=-50, right=50) 
+ax.axes.set_ylim3d(bottom=-50, top=50) 
+ax.axes.set_zlim3d(bottom=-50, top=50) 
+for l in classifier.lines:
+    points = Points(classifier.line_pointclouds[l])
+    l.skLine.plot_3d(ax, t_1=0, t_2=l.length, c='y')
 plt.show()
