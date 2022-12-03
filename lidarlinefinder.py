@@ -6,16 +6,6 @@ import math
 import matplotlib.pyplot as plt
 import time
 import itertools
-'''
-TODO:
-    ideas: 
-        1. prune lines that are too close to eachother
-        2. after 10 iterations, add everything to the same cluster and try to do clustering again
-        3. seperate line into segments if the point projections onto like line using transform_points()
-'''
-
-
-# np.random.seed(69)
 
 
 class Line3D:
@@ -24,14 +14,29 @@ class Line3D:
         self.s = np.array([0, 0, 0])
         self.update_line(start, end)
     
-
+    
     def get_length_direction(self):
+        """
+        get_length_direction: 
+        returns the length and direction of the current line
+        self.e and self.s must be created
+
+        :return: length and direction of the line
+        """ 
         diff = np.subtract(self.e, self.s)
         length = np.linalg.norm(diff)
         diff = diff/length
         return  length, diff
 
     def update_line(self, start, end):
+        """
+        update_line updates the location of a line given start and end points
+
+        :start: starting point of the line
+        :end: ending point of the line
+
+        :return: None
+        """ 
         if type(start) == list:
             self.s = np.array(start)
         else:
@@ -45,19 +50,34 @@ class Line3D:
         self.length, self.direction = self.get_length_direction()
         self.skLine = Line(self.s, self.direction)
     
-    def generate_pts_from_line(self, density, v):
-        total_points = round(self.length/density)
+    def generate_pts_from_line(self, interval, v):
+        """
+        generate_pts_from_line generates points describing the line object
+
+        :interval: determines the interval that the points get generated in
+        :v: ending point of the line
+
+        :return: None
+        """ 
+        total_points = round(self.length/interval)
         points = np.zeros((total_points,3))
         mean = [0, 0, 0]
         cov = np.identity(3) * v
         noise = np.random.multivariate_normal(mean,cov,total_points)
 
         for i in range(total_points):
-            points[i] = self.direction*i*density + self.s + noise[i]
+            points[i] = self.direction*i*interval + self.s + noise[i]
         
         return Points(points)
 
     def get_dist(self, point):
+        """
+        get_dist gets the distance from a point to the line segment
+
+        :point: the point to be compared to
+
+        :return: distance of the point to the line segment
+        """ 
 
         p = self.skLine.project_point(point)
 
@@ -71,8 +91,14 @@ class Line3D:
         return dist
 
     def isclose(self, other):
-        return np.allclose(self.direction, other.direction,atol=1) and (self.get_dist(other.s) < 1 or self.get_dist(other.e) < 1)
-    
+        """
+        isclose Determines if another line is close to the main line
+
+        :other: another line
+
+        :return: distance of the point to the line segment
+        """ 
+        return (np.allclose(self.direction, other.direction,atol=1) and (self.get_dist(other.s) < 1 or self.get_dist(other.e) < 1)) or (self.get_dist(other.s) < 1 and self.get_dist(other.e) < 1)
     
     def __eq__(self,other):
         return isinstance(other,Line3D) and np.all(self.s == other.s) and np.all(self.e == other.e)
@@ -103,12 +129,25 @@ class KNN:
         self.used_points = self.tally_used_points()
 
     def init_line(self):
+        """
+        init_line Initializes a line segment in the space. the line segment is created by 
+                  sampling two random points and using them as start and end points.  
+
+        :return: a Line3D object representing the line just generated
+        """ 
         selection = np.random.choice(self.pointcloud.shape[0], 2, replace = False)
         return Line3D(self.pointcloud[selection[0]], self.pointcloud[selection[1]])
         # return Line3D(self.pointcloud[-1], self.pointcloud[30])
 
     def get_dist(self, point, line):
+        """
+        get_dist gets the distance from a point to the line segment
 
+        :point: the point to be compared to
+        :line: the line being compared to
+
+        :return: distance of the point to the line segment
+        """ 
         p = line.skLine.project_point(point)
 
         vec_s = p-line.s
@@ -120,7 +159,15 @@ class KNN:
             dist = min(np.linalg.norm(point-line.s), np.linalg.norm(point-line.e))/2
         return dist
     
-    def include_criteria(self, dist, line, point):
+    def include_criteria(self, dist):
+        """
+        include_criteria calculates the probability of a point with dist to be generated from the line
+                         using variance. the probability is defined on initialization and is based.
+
+        :dist: distacne fromt he line to the point
+
+        :return: if the point is within probability tolerance
+        """ 
         prob = self.nd.pdf(dist)
         if prob > 1-self.prob:
             return True
@@ -128,12 +175,22 @@ class KNN:
             return False
     
     def tally_used_points(self):
+        """
+        tally_used_points sums up the number of points in the pointcloud for each line.
+
+        :return: array for each line being tracked by the classifier representing number of used points in the tally.
+        """ 
         used_points = []
         for l in self.line_pointclouds:
             used_points.append(len(self.line_pointclouds[l]))
         return used_points
     
     def check_lines_settle(self):
+        """
+        check_lines_settle checks to see if the lines have stabilized
+
+        :return: True if the lines are stabilized and have not updated
+        """ 
         used_points = self.tally_used_points()
         if len(used_points) != len(self.used_points):
             return False
@@ -149,6 +206,14 @@ class KNN:
         return True
             
     def start_end_from_ptcld(self, ptcld):
+        """
+        start_end_from_ptcld generates start and ending points of the line of best fit
+                            from pointcloud cluster
+
+        :ptcld: the pointcloud to be processed.
+
+        :return: start and endpoint of a line of best fit generated with this pointcloud
+        """ 
         points = Points(ptcld)
         lobf = Line.best_fit(points)
         
@@ -161,6 +226,12 @@ class KNN:
         return start, end
 
     def line_from_all_unused(self):
+        """
+        line_from_all_unused generates a line of best fit from all the unused points in the 
+                             pointcloud. This new line is added to self.lines
+
+        :return: None
+        """
         if len(self.unused_points) == 0:
             return
         start, end = self.start_end_from_ptcld(self.unused_points)
@@ -170,6 +241,13 @@ class KNN:
 
 
     def fit(self, iterations = 1):
+        """
+        fit iterates the classifier to find better lines of best fit
+
+        :iterations: the number of iterations to iterate through
+
+        :return: None
+        """
         for i in range(iterations):
             self.total_iterations += 1
 
@@ -177,7 +255,7 @@ class KNN:
             self.update_lines()
             self.segment_line()
             self.prune_lines()
-            if self.check_lines_settle():
+            if self.check_lines_settle() and len(self.unused_points)/sum(self.used_points)>0.2:
                 print("_______________generate new line_______________")
                 self.line_from_all_unused()
                 self.point_segmentation()
@@ -187,6 +265,12 @@ class KNN:
             print(self.used_points)
     
     def point_segmentation(self):
+        """
+        point_segmentation checks the pointcloud against each line and associates points that are meet
+                           proximity criteria into the line_pointcloud
+
+        :return: None
+        """
         for ptcld in self.line_pointclouds:
             self.line_pointclouds[ptcld] = []
         self.unused_points = []
@@ -202,6 +286,11 @@ class KNN:
                 self.unused_points.append(p)
     
     def update_lines(self):
+        """
+        update_lines generates lines from line_pointclouds using the line of best fit method
+
+        :return: None
+        """
         destructable_lines = []
         for line in self.line_pointclouds:
             # points = Points(self.line_pointclouds[line])
@@ -222,11 +311,23 @@ class KNN:
             self.destruct_line(l)
     
     def destruct_line(self, l):
+        """
+        destruct_line deletes a line
+
+        :return: None
+        """
         self.lines.remove(l)
         del self.line_pointclouds[l]
 
     
     def segment_line(self):
+        """
+        segment_line segments a line into multiple smaller lines if the points defining a line are of seperate
+                     clusters. The criteria for segmenting is the distance between adjacent points must be much much greater
+                     than the average distance of the points and also greater than a threshold scaled by variance.
+
+        :return: None
+        """
         extra_lines = []
         new_lines = {}
         for line in self.line_pointclouds:
@@ -291,6 +392,11 @@ class KNN:
             self.line_pointclouds[l] = new_lines[l]
 
     def prune_lines(self):
+        """
+        prune_lines deletes lines that are to close to eachother @nick fill in details
+
+        :return: None
+        """
         del_list = []
         chosen_line = None
         for (ix, x), (iy, y) in itertools.combinations(enumerate(self.line_pointclouds),2):
@@ -344,7 +450,7 @@ fig = plt.figure(0)
 ax = fig.add_subplot(111,projection='3d') 
 pointcloud.plot_3d(ax, c='b',depthshade=False)
 
-classifier = KNN(pointcloud, Variance, 0.975, 6)
+classifier = KNN(pointcloud, Variance, 0.975, 1)
 # for i in range(1,20):
     # plt.figure(i)
     # fig = plt.figure() 
