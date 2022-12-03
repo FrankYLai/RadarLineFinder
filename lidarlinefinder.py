@@ -68,16 +68,20 @@ class KNN:
 
         self.v = variance
         self.prob = probability
+        
+        self.used_points = []
 
         self.nd = scipy.stats.norm(0, math.sqrt(variance))
         for i in range(num_lines):
             self.lines.append(self.init_line())
             self.line_pointclouds[self.lines[-1]] = np.array([])
+        
+        self.used_points = self.tally_used_points()
 
     def init_line(self):
-        # selection = np.random.choice(self.pointcloud.shape[0], 2, replace = False)
-        # return Line3D(self.pointcloud[selection[0]], self.pointcloud[selection[1]])
-        return Line3D(self.pointcloud[-1], self.pointcloud[30])
+        selection = np.random.choice(self.pointcloud.shape[0], 2, replace = False)
+        return Line3D(self.pointcloud[selection[0]], self.pointcloud[selection[1]])
+        # return Line3D(self.pointcloud[-1], self.pointcloud[30])
 
     def get_dist(self, point, line):
 
@@ -89,7 +93,7 @@ class KNN:
         if d_product< 0:
             dist = line.skLine.distance_point(point)
         else:
-            dist = min(np.linalg.norm(point-line.s), np.linalg.norm(point-line.e))
+            dist = min(np.linalg.norm(point-line.s), np.linalg.norm(point-line.e))/2
         return dist
     
     def include_criteria(self, dist, line, point):
@@ -98,13 +102,61 @@ class KNN:
             return True
         else:
             return False
+    
+    def tally_used_points(self):
+        used_points = []
+        for l in self.line_pointclouds:
+            used_points.append(len(self.line_pointclouds[l]))
+        return used_points
+    
+    def check_lines_settle(self):
+        used_points = self.tally_used_points()
+        if len(used_points) != len(self.used_points):
+            return False
+        
+        sum = 0
+        for i in range(len(used_points)):
+            diff = abs(self.used_points[i]- used_points[i])
+            if diff>2:
+                return False
+        #lines have settled if number of lines generated is the same, 
+        # and the difference bettwen this iteration of used points and the next iteration of used poits
+        # is less than 2 for each line
+        return True
+            
+    def start_end_from_ptcld(self, ptcld):
+        points = Points(ptcld)
+        lobf = Line.best_fit(points)
+        
+        dists = lobf.transform_points(points)
+        min_dist = min(dists)
+        max_dist = max(dists)
+        start = lobf.point+lobf.direction*min_dist
+        end = lobf.point+lobf.direction*max_dist
+
+        return start, end
+
+    def line_from_all_unused(self):
+        if len(self.unused_points) == 0:
+            return
+        start, end = self.start_end_from_ptcld(self.unused_points)
+        l = Line3D(start, end)
+        self.lines.append(l)
+        self.line_pointclouds[l] = []
+
 
     def fit(self, iterations = 1):
         for i in range(iterations):
+            self.total_iterations += 1
+
             self.point_segmentation()
             self.update_lines()
             self.segment_line()
-            self.total_iterations += 1
+            if self.check_lines_settle():
+                print("_______________generate new line_______________")
+            #     self.line_from_all_unused()
+            self.used_points = self.tally_used_points()
+            print(self.used_points)
     
     def point_segmentation(self):
         for ptcld in self.line_pointclouds:
@@ -122,17 +174,28 @@ class KNN:
                 self.unused_points.append(p)
     
     def update_lines(self):
+        destructable_lines = []
         for line in self.line_pointclouds:
-            points = Points(self.line_pointclouds[line])
-            lobf = Line.best_fit(points)
+            # points = Points(self.line_pointclouds[line])
+            # lobf = Line.best_fit(points)
             
-            dists = lobf.transform_points(points)
-            min_dist = min(dists)
-            max_dist = max(dists)
-            start = lobf.point+lobf.direction*min_dist
-            end = lobf.point+lobf.direction*max_dist
+            # dists = lobf.transform_points(points)
+            # min_dist = min(dists)
+            # max_dist = max(dists)
+            # start = lobf.point+lobf.direction*min_dist
+            # end = lobf.point+lobf.direction*max_dist
+            if len(self.line_pointclouds[line]) < 10:
+                destructable_lines.append(line)
+            else:
+                start,  end = self.start_end_from_ptcld(self.line_pointclouds[line])
 
-            line.update_line(start, end)
+                line.update_line(start, end)
+        for l in destructable_lines:
+            self.destruct_line(l)
+    def destruct_line(self, l):
+        self.lines.remove(l)
+        del self.line_pointclouds[l]
+
     
     def segment_line(self):
         extra_lines = []
@@ -156,7 +219,7 @@ class KNN:
             line_segments = []
             line_segments.append(0)
             for idx, diff in enumerate(diffs):
-                if diff > 2 * avg_diff and diff > 2*self.v: # if the next point is twice the average away from the previous point, segment
+                if diff > 5 * avg_diff and diff > 5*self.v: # if the next point is twice the average away from the previous point, segment
                     line_segments.append(idx+1)
                     print("segmentation at index", idx+1, 'of', len(lin_dists))
             line_segments.append(len(lin_dists))
@@ -174,14 +237,15 @@ class KNN:
                         continue
                     new_line_generated = True
                     #generate new LOBF based on the new pointcloud:
-                    points = Points(ptcld)
-                    lobf = Line.best_fit(points)
+                    # points = Points(ptcld)
+                    # lobf = Line.best_fit(points)
                     
-                    d = lobf.transform_points(points)
-                    min_dist = min(d)
-                    max_dist = max(d)
-                    start = lobf.point+lobf.direction*min_dist
-                    end = lobf.point+lobf.direction*max_dist
+                    # d = lobf.transform_points(points)
+                    # min_dist = min(d)
+                    # max_dist = max(d)
+                    # start = lobf.point+lobf.direction*min_dist
+                    # end = lobf.point+lobf.direction*max_dist
+                    start, end = self.start_end_from_ptcld(ptcld)
 
                     l = Line3D(start, end)
                     self.lines.append(l)
@@ -201,19 +265,21 @@ class KNN:
 Variance = 1
 line = Line3D([30,0,0], [0,0,0])
 line2 = Line3D([5, 5, 3], [5,9,8])
+line3 = Line3D([20, -9, -3], [25,-3,-9])
 p = line.generate_pts_from_line(0.333, Variance)
 p2 = line2.generate_pts_from_line(0.3333, Variance)
+p3 = line3.generate_pts_from_line(0.3333, Variance)
 
 
 
-pointcloud = np.concatenate((np.array(p), np.array(p2)))
+pointcloud = np.concatenate((np.array(p), np.array(p2), np.array(p3)))
 # pointcloud = np.array(p)
 pointcloud = Points(pointcloud)
 fig = plt.figure(0)
 ax = fig.add_subplot(111,projection='3d') 
 pointcloud.plot_3d(ax, c='b',depthshade=False)
 
-classifier = KNN(pointcloud, Variance, 0.975, 1)
+classifier = KNN(pointcloud, Variance, 0.975, 6)
 fig = plt.figure(1) 
 ax = fig.add_subplot(111,projection='3d') 
 ax.axes.set_xlim3d(left=-5, right=35) 
@@ -222,7 +288,7 @@ ax.axes.set_zlim3d(bottom=-10, top=10)
 for l in classifier.lines:
     l.skLine.plot_3d(ax, t_1=0, t_2=l.length, c='y')
 pointcloud.plot_3d(ax, c='b',depthshade=False)
-for i in range(1,20):
+for i in range(1,7):
     plt.figure(i)
     fig = plt.figure() 
     ax = fig.add_subplot(111,projection='3d') 
