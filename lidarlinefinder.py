@@ -219,7 +219,7 @@ class KNN:
             line_segments = []
             line_segments.append(0)
             for idx, diff in enumerate(diffs):
-                if diff > 5 * avg_diff and diff > 5*self.v: # if the next point is twice the average away from the previous point, segment
+                if diff > 3 * avg_diff and diff > 3*self.v: # if the next point is twice the average away from the previous point, segment
                     line_segments.append(idx+1)
                     print("segmentation at index", idx+1, 'of', len(lin_dists))
             line_segments.append(len(lin_dists))
@@ -262,13 +262,13 @@ class KNN:
             self.line_pointclouds[l] = new_lines[l]
 
             
-Variance = 1
+Variance = 0.5
 line = Line3D([30,0,0], [0,0,0])
 line2 = Line3D([5, 5, 3], [5,9,8])
 line3 = Line3D([20, -9, -3], [25,-3,-9])
-p = line.generate_pts_from_line(0.333, Variance)
-p2 = line2.generate_pts_from_line(0.3333, Variance)
-p3 = line3.generate_pts_from_line(0.3333, Variance)
+p = line.generate_pts_from_line(0.1, Variance)
+p2 = line2.generate_pts_from_line(0.1, Variance)
+p3 = line3.generate_pts_from_line(0.1, Variance)
 
 
 
@@ -279,7 +279,7 @@ fig = plt.figure(0)
 ax = fig.add_subplot(111,projection='3d') 
 pointcloud.plot_3d(ax, c='b',depthshade=False)
 
-classifier = KNN(pointcloud, Variance, 0.975, 6)
+classifier = KNN(pointcloud, Variance, 0.975, 4)
 fig = plt.figure(1) 
 ax = fig.add_subplot(111,projection='3d') 
 ax.axes.set_xlim3d(left=-5, right=35) 
@@ -301,8 +301,9 @@ for i in range(1,7):
         l.skLine.plot_3d(ax, t_1=0, t_2=l.length, c='y')
         points.plot_3d(ax, c='r', depthshade=False)
         print(l.length, l.s, l.e)
-    unused_points = Points(classifier.unused_points)
-    unused_points.plot_3d(ax, c='b',depthshade=False)
+    if not classifier.unused_points == []:
+        unused_points = Points(classifier.unused_points)
+        unused_points.plot_3d(ax, c='b',depthshade=False)
 
 
 
