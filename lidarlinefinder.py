@@ -344,43 +344,23 @@ fig = plt.figure(0)
 ax = fig.add_subplot(111,projection='3d') 
 pointcloud.plot_3d(ax, c='b',depthshade=False)
 
-<<<<<<< Updated upstream
 classifier = KNN(pointcloud, Variance, 0.975, 6)
-=======
-classifier = KNN(pointcloud, Variance, 0.975, 1)
-fig = plt.figure(1) 
-ax = fig.add_subplot(111,projection='3d') 
-ax.axes.set_xlim3d(left=-5, right=35) 
-ax.axes.set_ylim3d(bottom=-10, top=10) 
-ax.axes.set_zlim3d(bottom=-10, top=10)
->>>>>>> Stashed changes
-for l in classifier.lines:
-    l.skLine.plot_3d(ax, t_1=0, t_2=l.length, c='y')
-pointcloud.plot_3d(ax, c='b',depthshade=False)
-for i in range(1,15):
-    plt.figure(i)
-    fig = plt.figure() 
-    ax = fig.add_subplot(111,projection='3d') 
-    ax.axes.set_xlim3d(left=-50, right=50) 
-    ax.axes.set_ylim3d(bottom=-50, top=50) 
-    ax.axes.set_zlim3d(bottom=-50, top=50) 
-    classifier.fit()
-    for l in classifier.lines:
-        points = Points(classifier.line_pointclouds[l])
-        l.skLine.plot_3d(ax, t_1=0, t_2=l.length, c='y')
-<<<<<<< Updated upstream
+# for i in range(1,20):
+    # plt.figure(i)
+    # fig = plt.figure() 
+    # ax = fig.add_subplot(111,projection='3d') 
+    # ax.axes.set_xlim3d(left=-50, right=50) 
+    # ax.axes.set_ylim3d(bottom=-50, top=50) 
+    # ax.axes.set_zlim3d(bottom=-50, top=50) 
+classifier.fit(20)
+    # for l in classifier.lines:
+    #     points = Points(classifier.line_pointclouds[l])
+    #     l.skLine.plot_3d(ax, t_1=0, t_2=l.length, c='y')
     #     #points.plot_3d(ax, c='r', depthshade=False)
     #     print(l.length, l.s, l.e)
     # if not classifier.unused_points == []:
     #     unused_points = Points(classifier.unused_points)
     #     unused_points.plot_3d(ax, c='b',depthshade=False)
-=======
-        points.plot_3d(ax, c='r', s=1, depthshade=False)
-        print(l.length, l.s, l.e)
-    if not classifier.unused_points == []:
-        unused_points = Points(classifier.unused_points)
-        unused_points.plot_3d(ax, c='b', s=1, depthshade=False)
->>>>>>> Stashed changes
 
 
 fig = plt.figure(100) 
@@ -392,4 +372,36 @@ ax.axes.set_zlim3d(bottom=-50, top=50)
 for l in classifier.lines:
     points = Points(classifier.line_pointclouds[l])
     l.skLine.plot_3d(ax, t_1=0, t_2=l.length, c='y')
+
+fig = plt.figure(110) 
+ax = fig.add_subplot(111,projection='3d') 
+
+ax.axes.set_xlim3d(left=-50, right=50) 
+ax.axes.set_ylim3d(bottom=-50, top=50) 
+ax.axes.set_zlim3d(bottom=-50, top=50) 
+
+for l in classifier.lines:
+    points = Points(classifier.line_pointclouds[l])
+    l.skLine.plot_3d(ax, t_1=0, t_2=l.length, c='y')
+    points.plot_3d(ax, c='r', depthshade=False)
+    print(l.length, l.s, l.e)
+
+if not classifier.unused_points == []:
+    unused_points = Points(classifier.unused_points)
+    unused_points.plot_3d(ax, c='b',depthshade=False)
+
+fig = plt.figure(120) 
+ax = fig.add_subplot(111,projection='3d') 
+
+ax.axes.set_xlim3d(left=-50, right=50) 
+ax.axes.set_ylim3d(bottom=-50, top=50) 
+ax.axes.set_zlim3d(bottom=-50, top=50)
+line.skLine.plot_3d(ax, t_1=0, t_2=line.length, c='y')
+line2.skLine.plot_3d(ax, t_1=0, t_2=line2.length, c='y')
+line3.skLine.plot_3d(ax, t_1=0, t_2=line3.length, c='y')
+line4.skLine.plot_3d(ax, t_1=0, t_2=line4.length, c='y')
+line5.skLine.plot_3d(ax, t_1=0, t_2=line5.length, c='y')
+line6.skLine.plot_3d(ax, t_1=0, t_2=line6.length, c='y')
+
+
 plt.show()
