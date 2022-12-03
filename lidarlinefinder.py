@@ -14,7 +14,7 @@ TODO:
 '''
 
 
-
+# np.random.seed(69)
 
 
 class Line3D:
@@ -75,8 +75,9 @@ class KNN:
             self.line_pointclouds[self.lines[-1]] = np.array([])
 
     def init_line(self):
-        selection = np.random.choice(self.pointcloud.shape[0], 2, replace = False)
-        return Line3D(self.pointcloud[selection[0]], self.pointcloud[selection[1]])
+        # selection = np.random.choice(self.pointcloud.shape[0], 2, replace = False)
+        # return Line3D(self.pointcloud[selection[0]], self.pointcloud[selection[1]])
+        return Line3D(self.pointcloud[-1], self.pointcloud[30])
 
     def get_dist(self, point, line):
 
@@ -102,6 +103,7 @@ class KNN:
         for i in range(iterations):
             self.point_segmentation()
             self.update_lines()
+            self.segment_line()
             self.total_iterations += 1
     
     def point_segmentation(self):
@@ -131,25 +133,96 @@ class KNN:
             end = lobf.point+lobf.direction*max_dist
 
             line.update_line(start, end)
+    
+    def segment_line(self):
+        extra_lines = []
+        new_lines = {}
+        for line in self.line_pointclouds:
+            np_lindist = line.skLine.transform_points(self.line_pointclouds[line])
+           
+            lin_dists = list(np_lindist) #length of N
+            sorted_lindist = np.sort(np_lindist)
+            
+            np_offset_lindist = sorted_lindist[1:]
+            sorted_sublist = sorted_lindist[0:len(sorted_lindist)-1]
+        
+            diffs = np.subtract(np_offset_lindist,sorted_sublist) # length of N-1
+            avg_diff = np.average(np.array(diffs))
+
+            # print(lin_dists)
+            # print(diffs)
+            # print(avg_diff)
+
+            line_segments = []
+            line_segments.append(0)
+            for idx, diff in enumerate(diffs):
+                if diff > 2 * avg_diff and diff > 2*self.v: # if the next point is twice the average away from the previous point, segment
+                    line_segments.append(idx+1)
+                    print("segmentation at index", idx+1, 'of', len(lin_dists))
+            line_segments.append(len(lin_dists))
+
+            if len(line_segments) > 2:
+                new_line_generated = False
+                for split in range(len(line_segments)-1):
+                    ptcld = []
+                    for p in range(line_segments[split], line_segments[split+1]):
+                        #append a single point
+                        ptcld.append(self.line_pointclouds[line][lin_dists.index(sorted_lindist[p])]) #finds the point using the index given by find
+                    
+                    #requires at least 3 points to define a line of best fit
+                    if len(ptcld)<3:
+                        continue
+                    new_line_generated = True
+                    #generate new LOBF based on the new pointcloud:
+                    points = Points(ptcld)
+                    lobf = Line.best_fit(points)
+                    
+                    d = lobf.transform_points(points)
+                    min_dist = min(d)
+                    max_dist = max(d)
+                    start = lobf.point+lobf.direction*min_dist
+                    end = lobf.point+lobf.direction*max_dist
+
+                    l = Line3D(start, end)
+                    self.lines.append(l)
+                    new_lines[l] = ptcld # save this so we can add it to the class dictionary after
+
+                if new_line_generated:
+                    extra_lines.append(line)
+            
+        #delete old lines
+        for l in extra_lines:
+            del self.line_pointclouds[l]
+            self.lines.remove(l)
+        for l in new_lines:
+            self.line_pointclouds[l] = new_lines[l]
+
             
 Variance = 1
 line = Line3D([30,0,0], [0,0,0])
-line2 = Line3D([10, 10, 10], [5,15,12])
-p = line.generate_pts_from_line(0.1, Variance)
-p2 = line2.generate_pts_from_line(0.1, Variance)
-
+line2 = Line3D([5, 5, 3], [5,9,8])
+p = line.generate_pts_from_line(0.333, Variance)
+p2 = line2.generate_pts_from_line(0.3333, Variance)
 
 
 
 pointcloud = np.concatenate((np.array(p), np.array(p2)))
+# pointcloud = np.array(p)
 pointcloud = Points(pointcloud)
-print(pointcloud.size, p.size, p2.size)
 fig = plt.figure(0)
 ax = fig.add_subplot(111,projection='3d') 
 pointcloud.plot_3d(ax, c='b',depthshade=False)
 
-classifier = KNN(pointcloud, Variance, 0.9, 1)
-for i in range(1,11):
+classifier = KNN(pointcloud, Variance, 0.975, 1)
+fig = plt.figure(1) 
+ax = fig.add_subplot(111,projection='3d') 
+ax.axes.set_xlim3d(left=-5, right=35) 
+ax.axes.set_ylim3d(bottom=-10, top=10) 
+ax.axes.set_zlim3d(bottom=-10, top=10)
+for l in classifier.lines:
+    l.skLine.plot_3d(ax, t_1=0, t_2=l.length, c='y')
+pointcloud.plot_3d(ax, c='b',depthshade=False)
+for i in range(1,20):
     plt.figure(i)
     fig = plt.figure() 
     ax = fig.add_subplot(111,projection='3d') 
@@ -159,12 +232,12 @@ for i in range(1,11):
     classifier.fit()
     for l in classifier.lines:
         points = Points(classifier.line_pointclouds[l])
-        l.skLine.plot_3d(ax, t_1=0, t_2=line.length, c='y')
+        l.skLine.plot_3d(ax, t_1=0, t_2=l.length, c='y')
         points.plot_3d(ax, c='r', depthshade=False)
         print(l.length, l.s, l.e)
     unused_points = Points(classifier.unused_points)
     unused_points.plot_3d(ax, c='b',depthshade=False)
-    print(unused_points.size)
+
 
 
 plt.show()
