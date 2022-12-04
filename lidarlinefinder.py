@@ -8,7 +8,20 @@ import time
 import itertools
 
 
-class Line3D:
+class Line3D: 
+    """
+    A wrapper object around scikit-spatial Line(), 
+    with more functionality for KNN classification
+
+    Parameters
+    ----------
+    Start : array_like.
+        3D coordinate of line starting point.
+    End : array_like.
+        3D coordinate of line ending point.
+            
+
+    """
     def __init__(self, start, end):
         self.e = np.array([0, 0, 0])
         self.s = np.array([0, 0, 0])
@@ -17,11 +30,12 @@ class Line3D:
     
     def get_length_direction(self):
         """
-        get_length_direction: 
-        returns the length and direction of the current line
+        Returns the length and direction of the current line
         self.e and self.s must be created
 
-        :return: length and direction of the line
+        Returns
+        ------- 
+        Length and direction of the line
         """ 
         diff = np.subtract(self.e, self.s)
         length = np.linalg.norm(diff)
@@ -30,12 +44,16 @@ class Line3D:
 
     def update_line(self, start, end):
         """
-        update_line updates the location of a line given start and end points
+        Updates the location of a line given start and end points
 
+        Parameters
+        ------- 
         :start: starting point of the line
         :end: ending point of the line
 
-        :return: None
+        Returns
+        ------- 
+        None
         """ 
         if type(start) == list:
             self.s = np.array(start)
@@ -52,12 +70,17 @@ class Line3D:
     
     def generate_pts_from_line(self, interval, v):
         """
-        generate_pts_from_line generates points describing the line object
+        Generates points describing the line object
 
+        Parameters
+        -------  
         :interval: determines the interval that the points get generated in
         :v: ending point of the line
 
-        :return: None
+        Returns
+        -------  
+        Surrounding around the line
+
         """ 
         total_points = round(self.length/interval)
         points = np.zeros((total_points,3))
@@ -72,11 +95,15 @@ class Line3D:
 
     def get_dist(self, point):
         """
-        get_dist gets the distance from a point to the line segment
+        Gets the distance from a point to the line segment
 
-        :point: the point to be compared to
+        Parameters
+        ------- 
+        :point: point to be compared to
 
-        :return: distance of the point to the line segment
+        Returns
+        -------  
+        Distance of the point to the line segment
         """ 
 
         p = self.skLine.project_point(point)
@@ -90,20 +117,39 @@ class Line3D:
             dist = min(np.linalg.norm(point-self.s), np.linalg.norm(point-self.e))
         return dist
 
-    def isclose(self, other):
+    def isclose(self, other, atol = 1.0):
         """
         isclose Determines if another line is close to the main line
 
+        Parameters
+        ----------
         :other: another line
 
-        :return: True or False on if the given line is close
+        Returns
+        -------  
+        True or False on if the given line is close
         """ 
-        return (np.allclose(self.direction, other.direction,atol=2) and (self.get_dist(other.s) < 1 or self.get_dist(other.e) < 1)) or (self.get_dist(other.s) < 1 and self.get_dist(other.e) < 1)
+        return (np.allclose(self.direction, other.direction,atol=2*atol) and (self.get_dist(other.s) < atol or self.get_dist(other.e) < atol)) 
 
     def __hash__(self):
         return id(self)
 
-class KNN:
+class KNN: 
+    """
+    A KNN classifier to detect lines in 3D space.
+
+    Parameters
+    ----------
+    pointcloud : scikit-spatial Points()
+            Pointcloud to classify on.
+    varience : float. 
+            @Frank add to this
+    probability :  float. 
+            @Frank add to this
+    num_lines : int. 
+            initial guess for number of lines.
+
+    """
     def __init__(self, pointcloud, variance, probability = 0.9, num_lines = 1) -> None:
         
         self.total_iterations = 0
@@ -127,10 +173,12 @@ class KNN:
 
     def init_line(self):
         """
-        init_line Initializes a line segment in the space. the line segment is created by 
-                  sampling two random points and using them as start and end points.  
+        Initializes a line segment in the space. the line segment is created by 
+        sampling two random points and using them as start and end points.  
 
-        :return: a Line3D object representing the line just generated
+        Returns
+        -------  
+        Line3D object representing the line generated
         """ 
         selection = np.random.choice(self.pointcloud.shape[0], 2, replace = False)
         return Line3D(self.pointcloud[selection[0]], self.pointcloud[selection[1]])
@@ -138,12 +186,16 @@ class KNN:
 
     def get_dist(self, point, line):
         """
-        get_dist gets the distance from a point to the line segment
+        Gets the distance from a point to the line segment with emphasis on exploration
 
+        Parameters
+        ------- 
         :point: the point to be compared to
         :line: the line being compared to
 
-        :return: distance of the point to the line segment
+        Returns
+        -------  
+        Distance of the point to the line segment. Float
         """ 
         p = line.skLine.project_point(point)
 
@@ -158,12 +210,16 @@ class KNN:
     
     def include_criteria(self, dist):
         """
-        include_criteria calculates the probability of a point with dist to be generated from the line
-                         using variance. the probability is defined on initialization and is based.
+        Calculates the probability of a point with dist to be generated from the line
+        using variance. the probability is defined on initialization and is based.
 
+        Parameters
+        ------- 
         :dist: distacne fromt he line to the point
 
-        :return: if the point is within probability tolerance
+        Returns
+        ------- 
+        Boolean for the point is within probability tolerance
         """ 
         prob = self.nd.pdf(dist)
         if prob > 1-self.prob:
@@ -173,9 +229,11 @@ class KNN:
     
     def tally_used_points(self):
         """
-        tally_used_points sums up the number of points in the pointcloud for each line.
+        Sums up the number of points in the pointcloud for each line.
 
-        :return: array for each line being tracked by the classifier representing number of used points in the tally.
+        Returns
+        -------  
+        Array for each line being tracked by the classifier representing number of used points in the tally.
         """ 
         used_points = []
         for l in self.line_pointclouds:
@@ -184,9 +242,11 @@ class KNN:
     
     def check_lines_settle(self):
         """
-        check_lines_settle checks to see if the lines have stabilized
+        Checks to see if the lines have stabilized
 
-        :return: True if the lines are stabilized and have not updated
+        Returns
+        ------- 
+        True if the lines are stabilized and have not updated
         """ 
         used_points = self.tally_used_points()
         if len(used_points) != len(self.used_points):
@@ -204,12 +264,16 @@ class KNN:
             
     def start_end_from_ptcld(self, ptcld):
         """
-        start_end_from_ptcld generates start and ending points of the line of best fit
+        Generates start and ending points of the line of best fit
                             from pointcloud cluster
-
+        Parameters
+        ------- 
         :ptcld: the pointcloud to be processed.
 
-        :return: start and endpoint of a line of best fit generated with this pointcloud
+        Returns
+        -------  
+        Start and endpoint of a line of best fit generated with this pointcloud
+
         """ 
         points = Points(ptcld)
         lobf = Line.best_fit(points)
@@ -224,10 +288,12 @@ class KNN:
 
     def line_from_all_unused(self):
         """
-        line_from_all_unused generates a line of best fit from all the unused points in the 
-                             pointcloud. This new line is added to self.lines
+        Generates a line of best fit from all the unused points in the 
+        pointcloud. This new line is added to self.lines
 
-        :return: None
+        Returns
+        ------- 
+        None
         """
         if len(self.unused_points) == 0:
             return
@@ -239,11 +305,15 @@ class KNN:
 
     def fit(self, iterations = 1):
         """
-        fit iterates the classifier to find better lines of best fit
+        Fit iterates the classifier to find better lines of best fit
 
+        Parameters
+        ------- 
         :iterations: the number of iterations to iterate through
 
-        :return: None
+        Returns
+        -------  
+        None
         """
         for i in range(iterations):
             self.total_iterations += 1
@@ -251,7 +321,6 @@ class KNN:
             self.point_segmentation()
             self.update_lines()
             self.segment_line()
-            self.prune_lines()
             if self.check_lines_settle() and len(self.unused_points)/sum(self.used_points)>0.2:
                 #print("_______________generate new line_______________")
                 self.line_from_all_unused()
@@ -259,15 +328,17 @@ class KNN:
                 self.update_lines()
                 self.segment_line()
             
+            self.prune_lines()
             self.used_points = self.tally_used_points()
             #print(self.used_points)
     
     def point_segmentation(self):
         """
-        point_segmentation checks the pointcloud against each line and associates points that are meet
-                           proximity criteria into the line_pointcloud
-
-        :return: None
+        Checks the pointcloud against each line and associates points that are meet
+        proximity criteria into the line_pointcloud
+        Returns
+        -------  
+        None
         """
         for ptcld in self.line_pointclouds:
             self.line_pointclouds[ptcld] = []
@@ -285,9 +356,11 @@ class KNN:
     
     def update_lines(self):
         """
-        update_lines generates lines from line_pointclouds using the line of best fit method
+        Generates lines from line_pointclouds using the line of best fit method
 
-        :return: None
+        Returns
+        ------- 
+        None
         """
         destructable_lines = []
         for line in self.line_pointclouds:
@@ -310,9 +383,15 @@ class KNN:
     
     def destruct_line(self, l):
         """
-        destruct_line deletes a line
+        Deletes a line
 
-        :return: None
+        Parameters
+        ------- 
+        Line to delete
+
+        Returns
+        ------- 
+        None
         """
         self.lines.remove(l)
         del self.line_pointclouds[l]
@@ -320,11 +399,13 @@ class KNN:
     
     def segment_line(self):
         """
-        segment_line segments a line into multiple smaller lines if the points defining a line are of seperate
-                     clusters. The criteria for segmenting is the distance between adjacent points must be much much greater
-                     than the average distance of the points and also greater than a threshold scaled by variance.
+        Segments a line into multiple smaller lines if the points defining a line are of seperate
+        clusters. The criteria for segmenting is the distance between adjacent points must be much much greater
+        than the average distance of the points and also greater than a threshold scaled by variance.
 
-        :return: None
+        Returns
+        ------- 
+        None
         """
         extra_lines = []
         new_lines = {}
@@ -391,9 +472,11 @@ class KNN:
 
     def prune_lines(self):
         """
-        prune_lines deletes lines that are to close to each using isclose
+        Deletes lines that are to close to each using isclose
 
-        :return: None
+        Returns
+        ------- 
+        None
         """
         lines = np.array(list(self.line_pointclouds.keys()))
         del_list = []
@@ -443,7 +526,7 @@ classifier = KNN(pointcloud, Variance, 0.975, 5)
     # ax.axes.set_ylim3d(bottom=-50, top=50) 
     # ax.axes.set_zlim3d(bottom=-50, top=50) 
 start = time.time()
-classifier.fit(10)
+classifier.fit(20)
 end = time.time()
 print(end - start)
     # for l in classifier.lines:
