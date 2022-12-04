@@ -96,12 +96,9 @@ class Line3D:
 
         :other: another line
 
-        :return: distance of the point to the line segment
+        :return: True or False on if the given line is close
         """ 
-        return (np.allclose(self.direction, other.direction,atol=1) and (self.get_dist(other.s) < 1 or self.get_dist(other.e) < 1)) or (self.get_dist(other.s) < 1 and self.get_dist(other.e) < 1)
-    
-    def __eq__(self,other):
-        return isinstance(other,Line3D) and np.all(self.s == other.s) and np.all(self.e == other.e)
+        return (np.allclose(self.direction, other.direction,atol=2) and (self.get_dist(other.s) < 1 or self.get_dist(other.e) < 1)) or (self.get_dist(other.s) < 1 and self.get_dist(other.e) < 1)
 
     def __hash__(self):
         return id(self)
@@ -256,13 +253,14 @@ class KNN:
             self.segment_line()
             self.prune_lines()
             if self.check_lines_settle() and len(self.unused_points)/sum(self.used_points)>0.2:
-                print("_______________generate new line_______________")
+                #print("_______________generate new line_______________")
                 self.line_from_all_unused()
                 self.point_segmentation()
                 self.update_lines()
                 self.segment_line()
+            
             self.used_points = self.tally_used_points()
-            print(self.used_points)
+            #print(self.used_points)
     
     def point_segmentation(self):
         """
@@ -280,7 +278,7 @@ class KNN:
                 dists.append(self.get_dist(p, l))
             
             tmp = min(dists)
-            if self.include_criteria(tmp, self.lines[dists.index(tmp)], p):
+            if self.include_criteria(tmp):
                 self.line_pointclouds[self.lines[dists.index(tmp)]].append(p)
             else:
                 self.unused_points.append(p)
@@ -351,7 +349,7 @@ class KNN:
             for idx, diff in enumerate(diffs):
                 if diff > 3 * avg_diff and diff > 3*self.v: # if the next point is twice the average away from the previous point, segment
                     line_segments.append(idx+1)
-                    print("segmentation at index", idx+1, 'of', len(lin_dists))
+                    #print("segmentation at index", idx+1, 'of', len(lin_dists))
             line_segments.append(len(lin_dists))
 
             if len(line_segments) > 2:
@@ -393,37 +391,23 @@ class KNN:
 
     def prune_lines(self):
         """
-        prune_lines deletes lines that are to close to eachother @nick fill in details
+        prune_lines deletes lines that are to close to each using isclose
 
         :return: None
         """
+        lines = np.array(list(self.line_pointclouds.keys()))
         del_list = []
-        chosen_line = None
-        for (ix, x), (iy, y) in itertools.combinations(enumerate(self.line_pointclouds),2):
-            if x == y:
-                print("2 lines are equal")
-                if chosen_line == None:
-                    chosen_line = x
-                    if y not in del_list:
-                        del_list.append(y)
-                elif chosen_line == x:
-                    if y not in del_list:
-                        del_list.append(y)
+        for base in lines:
+            for other in lines:
+                if base.isclose(other) and base != other and other not in del_list:
+                    self.line_pointclouds[base].extend(self.line_pointclouds[other])
+                    del_list.append(other)
 
-            elif x.isclose(y):
-                print("Lines are close")
-                if chosen_line == None:
-                    chosen_line = x
-                    if y not in del_list:
-                        del_list.append(y)
-                elif chosen_line == x:
-                    if y not in del_list:
-                        del_list.append(y)
+            start, end = self.start_end_from_ptcld(self.line_pointclouds[base])
+            base.update_line(start, end)
+
         for item in del_list:
-            self.line_pointclouds[chosen_line].extend(self.line_pointclouds[item])
             self.destruct_line(item)
-            start, end = self.start_end_from_ptcld(self.line_pointclouds[chosen_line])
-            chosen_line.update_line(start, end)
 
             
 Variance = 0.5
@@ -450,7 +434,7 @@ fig = plt.figure(0)
 ax = fig.add_subplot(111,projection='3d') 
 pointcloud.plot_3d(ax, c='b',depthshade=False)
 
-classifier = KNN(pointcloud, Variance, 0.975, 1)
+classifier = KNN(pointcloud, Variance, 0.975, 5)
 # for i in range(1,20):
     # plt.figure(i)
     # fig = plt.figure() 
@@ -458,7 +442,10 @@ classifier = KNN(pointcloud, Variance, 0.975, 1)
     # ax.axes.set_xlim3d(left=-50, right=50) 
     # ax.axes.set_ylim3d(bottom=-50, top=50) 
     # ax.axes.set_zlim3d(bottom=-50, top=50) 
-classifier.fit(20)
+start = time.time()
+classifier.fit(10)
+end = time.time()
+print(end - start)
     # for l in classifier.lines:
     #     points = Points(classifier.line_pointclouds[l])
     #     l.skLine.plot_3d(ax, t_1=0, t_2=l.length, c='y')
