@@ -344,6 +344,8 @@ class Line_KNN:
         for ptcld in self.line_pointclouds:
             self.line_pointclouds[ptcld] = []
         self.unused_points = []
+        if self.lines == []:
+            return
         for p in self.pointcloud:
             dists = []
             for i, l in enumerate(self.lines):

@@ -21,12 +21,20 @@ test1 = {
 }
 
 test2 = {
-    "variance" : 0.5,
-    "lines" : [(([4,0,0], [4,0,3.6576])), ([-6, 0, 0], [-6,0,3.6576])],
+    "variance" : 0.2,
+    "lines" : [(([4,0,0], [4,0,3.6576])), ([-6, 0, 0], [-6,0,3.6576]),
+                (([4,9.144,0], [4,9.144,3.6576])), ([-6, 9.144, 0], [-6,9.144,3.6576]),
+                (([4,18.288,0], [4,18.288,3.6576])), ([-6, 18.288, 0], [-6,18.288,3.6576]),
+                (([4,27.432,0], [4,27.432,3.6576])), ([-6, 27.432, 0], [-6,27.432,3.6576]),
+                (([4,36.576,0], [4,36.576,3.6576])), ([-6, 36.576, 0], [-6,36.576,3.6576]),
+                (([4,-9.144,0], [4,-9.144,3.6576])), ([-6, -9.144, 0], [-6,-9.144,3.6576]),
+                (([4,-18.288,0], [4,-18.288,3.6576])), ([-6, -18.288, 0], [-6,-18.288,3.6576]),
+                (([4,-27.432,0], [4,-27.432,3.6576])), ([-6, -27.432, 0], [-6,-27.432,3.6576]),
+                (([4,-36.576,0], [4,-36.576,3.6576])), ([-6, -36.576, 0], [-6,-36.576,3.6576]),],
     "interval" : 0.05,
-    "bounds" : {'x': (-50, 50), 'y': (-15, 50), 'z': (-15, 15)},
+    "bounds" : {'x': (-40, 40), 'y': (-40, 40), 'z': (-30, 50)},
     "probability" : 0.975,
-    "initial_number_of_lines" : 3
+    "initial_number_of_lines" : 10
 }
 
 
@@ -43,10 +51,10 @@ def generate_ptcld_from_test(test):
     return ptcld_comb, lines
 
 def run_line_knn(test_data, iterations = 20):
-    ptcld, lines = generate_ptcld_from_test(test1)
+    ptcld, lines = generate_ptcld_from_test(test_data)
     classifier = Line_KNN(ptcld, test_data['variance'], test_data["probability"], test_data["initial_number_of_lines"])
     
-    classifier.fit(20)
+    classifier.fit(iterations)
     
     fig = plt.figure(1) 
     ax = fig.add_subplot(111,projection='3d') 
@@ -71,7 +79,7 @@ def run_line_knn(test_data, iterations = 20):
 
 def visualize_test(test):
     ptcld, lines = generate_ptcld_from_test(test)
-    fig = plt.figure(1) 
+    fig = plt.figure(2) 
     ax = fig.add_subplot(111,projection='3d') 
     ax.axes.set_xlim3d(left=test['bounds']['x'][0], right=test['bounds']['x'][1]) 
     ax.axes.set_ylim3d(bottom=test['bounds']['y'][0], top=test['bounds']['y'][1]) 
@@ -80,14 +88,17 @@ def visualize_test(test):
     #plot ground truth lines in red:
     for l in lines:
         l.skLine.plot_3d(ax, t_1=0, t_2=l.length, c='k')
+
+    points = Points(ptcld)
+    points.plot_3d(ax, c='b', depthshade=False, s=0.04)
     
     plt.show()
     
 
 
 if __name__ == '__main__':
-    # run_line_knn(test1, iterations = 20)
-    visualize_test(test2)
+    run_line_knn(test2, iterations = 30)
+    # visualize_test(test2)
     
 
 
