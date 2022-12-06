@@ -134,7 +134,7 @@ class Line3D:
     def __hash__(self):
         return id(self)
 
-class KNN: 
+class Line_KNN: 
     """
     A KNN classifier to detect lines in 3D space.
 
@@ -142,10 +142,11 @@ class KNN:
     ----------
     pointcloud : scikit-spatial Points()
             Pointcloud to classify on.
-    varience : float. 
-            @Frank add to this
+    variance : float. 
+            The specified variance value for the lidar that generates the point clouds. No support for covariance
+            or different variance in specific dimensions
     probability :  float. 
-            @Frank add to this
+            A probability threshold. all points clustered need to have this probability value to be considered part of a cluster
     num_lines : int. 
             initial guess for number of lines.
 
@@ -257,7 +258,7 @@ class KNN:
             diff = abs(self.used_points[i]- used_points[i])
             if diff>2:
                 return False
-        #lines have settled if number of lines generated is the same, 
+        # lines have settled if number of lines generated is the same, 
         # and the difference bettwen this iteration of used points and the next iteration of used poits
         # is less than 2 for each line
         return True
@@ -491,93 +492,3 @@ class KNN:
 
         for item in del_list:
             self.destruct_line(item)
-
-            
-Variance = 0.5
-line = Line3D([30,0,0], [0,0,0])
-line2 = Line3D([5, 5, 3], [5,9,8])
-line3 = Line3D([20, -9, -3], [25,-3,-9])
-
-line4 = Line3D([15,10,0], [20,35,0])
-line5 = Line3D([-10, 3, 40], [-2,3,25])
-line6 = Line3D([2, -20, -13], [-13,1,-10])
-p = line.generate_pts_from_line(0.1, Variance)
-p2 = line2.generate_pts_from_line(0.1, Variance)
-p3 = line3.generate_pts_from_line(0.1, Variance)
-
-p4 = line4.generate_pts_from_line(0.1, Variance)
-p5 = line5.generate_pts_from_line(0.1, Variance)
-p6 = line6.generate_pts_from_line(0.1, Variance)
-
-
-pointcloud = np.concatenate((np.array(p), np.array(p2),np.array(p3),np.array(p4),np.array(p5), np.array(p6)))
-# pointcloud = np.array(p)
-pointcloud = Points(pointcloud)
-fig = plt.figure(0)
-ax = fig.add_subplot(111,projection='3d') 
-pointcloud.plot_3d(ax, c='b',depthshade=False)
-
-classifier = KNN(pointcloud, Variance, 0.975, 5)
-# for i in range(1,20):
-    # plt.figure(i)
-    # fig = plt.figure() 
-    # ax = fig.add_subplot(111,projection='3d') 
-    # ax.axes.set_xlim3d(left=-50, right=50) 
-    # ax.axes.set_ylim3d(bottom=-50, top=50) 
-    # ax.axes.set_zlim3d(bottom=-50, top=50) 
-start = time.time()
-classifier.fit(20)
-end = time.time()
-print(end - start)
-    # for l in classifier.lines:
-    #     points = Points(classifier.line_pointclouds[l])
-    #     l.skLine.plot_3d(ax, t_1=0, t_2=l.length, c='y')
-    #     #points.plot_3d(ax, c='r', depthshade=False)
-    #     print(l.length, l.s, l.e)
-    # if not classifier.unused_points == []:
-    #     unused_points = Points(classifier.unused_points)
-    #     unused_points.plot_3d(ax, c='b',depthshade=False)
-
-
-fig = plt.figure(100) 
-ax = fig.add_subplot(111,projection='3d') 
-
-ax.axes.set_xlim3d(left=-50, right=50) 
-ax.axes.set_ylim3d(bottom=-50, top=50) 
-ax.axes.set_zlim3d(bottom=-50, top=50) 
-for l in classifier.lines:
-    points = Points(classifier.line_pointclouds[l])
-    l.skLine.plot_3d(ax, t_1=0, t_2=l.length, c='y')
-
-fig = plt.figure(110) 
-ax = fig.add_subplot(111,projection='3d') 
-
-ax.axes.set_xlim3d(left=-50, right=50) 
-ax.axes.set_ylim3d(bottom=-50, top=50) 
-ax.axes.set_zlim3d(bottom=-50, top=50) 
-
-for l in classifier.lines:
-    points = Points(classifier.line_pointclouds[l])
-    l.skLine.plot_3d(ax, t_1=0, t_2=l.length, c='y')
-    points.plot_3d(ax, c='r', depthshade=False)
-    print(l.length, l.s, l.e)
-
-if not classifier.unused_points == []:
-    unused_points = Points(classifier.unused_points)
-    unused_points.plot_3d(ax, c='b',depthshade=False)
-
-fig = plt.figure(120) 
-ax = fig.add_subplot(111,projection='3d') 
-
-ax.axes.set_xlim3d(left=-50, right=50) 
-ax.axes.set_ylim3d(bottom=-50, top=50) 
-ax.axes.set_zlim3d(bottom=-50, top=50)
-line.skLine.plot_3d(ax, t_1=0, t_2=line.length, c='y')
-line2.skLine.plot_3d(ax, t_1=0, t_2=line2.length, c='y')
-line3.skLine.plot_3d(ax, t_1=0, t_2=line3.length, c='y')
-line4.skLine.plot_3d(ax, t_1=0, t_2=line4.length, c='y')
-line5.skLine.plot_3d(ax, t_1=0, t_2=line5.length, c='y')
-line6.skLine.plot_3d(ax, t_1=0, t_2=line6.length, c='y')
-
-
-plt.show()
