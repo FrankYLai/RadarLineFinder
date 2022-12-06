@@ -216,7 +216,7 @@ class Line_KNN:
 
         Parameters
         ------- 
-        :dist: distacne fromt he line to the point
+        :dist: distance from the line to the point
 
         Returns
         ------- 

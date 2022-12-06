@@ -48,6 +48,13 @@ def generate_ptcld_from_test(test):
         ptclds.append(np.array(p))
     
     ptcld_comb = np.concatenate(tuple(ptclds))
+    n_rand = int(np.ceil(0.01*ptcld_comb.shape[0]))
+    x_rand = (test['bounds']['x'][1] - test['bounds']['x'][0]) * np.random.random_sample(n_rand) + test['bounds']['x'][0]
+    y_rand = (test['bounds']['y'][1] - test['bounds']['y'][0]) * np.random.random_sample(n_rand) + test['bounds']['y'][0]
+    z_rand = (test['bounds']['z'][1] - test['bounds']['z'][0]) * np.random.random_sample(n_rand) + test['bounds']['z'][0]
+    rand_noise = np.stack((x_rand,y_rand,z_rand), axis=-1)
+    ptcld_comb = np.concatenate((ptcld_comb, rand_noise), axis=0)
+
     return ptcld_comb, lines
 
 def run_line_knn(test_data, iterations = 20):
