@@ -77,9 +77,10 @@ def run_line_knn(test_data, iterations = 20, output_test_data = False, verbose =
             ax.axes.set_zlim3d(bottom=test_data['bounds']['z'][0], top=test_data['bounds']['z'][1])
 
             for l in classifier.lines:
-                points = Points(classifier.line_pointclouds[l])
                 l.skLine.plot_3d(ax, t_1=0, t_2=l.length, c='y')
-                points.plot_3d(ax, c='b', depthshade=False, s=0.1)
+                if not len(classifier.line_pointclouds[l]) == 0:
+                    points = Points(classifier.line_pointclouds[l])
+                    points.plot_3d(ax, c='b', depthshade=False, s=0.1)
             
             if not classifier.unused_points == []:
                 unused_points = Points(classifier.unused_points)
@@ -152,13 +153,13 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    t = tests_arr[args.test]
+    t = tests_arr[int(args.test)]
     i = args.iterations
     o = args.output
     v = args.verbose
     
     run_line_knn(t, iterations = i, output_test_data = o, verbose = v)
-    # visualize_test(t)
+    visualize_test(t)
     
 
 
