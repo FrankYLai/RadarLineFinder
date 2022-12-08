@@ -8,6 +8,16 @@ import time
 import itertools
 from lidarlinefinder import Line3D, Line_KNN
 
+test0 = {
+    "variance" : 0.2,
+    "lines" : [(([4,0,0], [4,0,3.6576])), ([-6, 0, 0], [-6,0,3.6576]),
+                (([4,9.144,0], [4,9.144,3.6576])), ([-6, 9.144, 0], [-6,9.144,3.6576])],
+    "interval" : 0.05,
+    "bounds" : {'x': (-40, 40), 'y': (-40, 40), 'z': (-30, 50)},
+    "probability" : 0.975,
+    "initial_number_of_lines" : 10,
+    "noise" : 0.02
+}
 
 test1 = {
     "variance" : 0.5,
@@ -17,7 +27,7 @@ test1 = {
     "interval" : 0.1,
     "bounds" : {'x': (-50, 50), 'y': (-50, 50), 'z': (-50, 50)},
     "probability" : 0.975,
-    "initial_number_of_lines" : 3,
+    "initial_number_of_lines" : 10,
     "noise" : 0.02
 }
 
@@ -35,12 +45,12 @@ test2 = {
     "interval" : 0.01,
     "bounds" : {'x': (-10, 10), 'y': (-40, 40), 'z': (-2, 10)},
     "probability" : 0.975,
-    "initial_number_of_lines" : 10,
+    "initial_number_of_lines" : 20,
     "noise" : 0.02
 }
 
-tests_arr = [test1, test2]
 
+tests_arr = [test0, test1, test2]
 
 def generate_ptcld_from_test(test):
     lines = []
@@ -68,6 +78,7 @@ def run_line_knn(test_data, iterations = 20, output_test_data = False, verbose =
         np.savetxt('ptcld.txt', np.array(ptcld), delimiter = ',')
     classifier = Line_KNN(ptcld, test_data['variance'], test_data["probability"], test_data["initial_number_of_lines"])
     
+    start = time.time()
     if verbose:
         for i in range(iterations):
             fig = plt.figure(10+i) 
@@ -87,11 +98,14 @@ def run_line_knn(test_data, iterations = 20, output_test_data = False, verbose =
                 unused_points.plot_3d(ax, c='k',depthshade=False,s=0.1)
             
             ax.set_title("iteration "+str(i))
-
+            
             classifier.fit() 
 
     else:
         classifier.fit(iterations)
+        
+    end = time.time()
+    print("Time taken:",round(end - start), " seconds")
     
     fig = plt.figure(1) 
     ax = fig.add_subplot(111,projection='3d') 
@@ -150,7 +164,6 @@ if __name__ == '__main__':
     parser.add_argument('-i', '--iterations', required = False, default=20)
     parser.add_argument('-v', '--verbose', action='store_true')  
     parser.add_argument('-o', '--output', action='store_true')
-
     args = parser.parse_args()
 
     t = tests_arr[int(args.test)]
