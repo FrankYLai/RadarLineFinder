@@ -8,18 +8,18 @@ import time
 import itertools
 from lidarlinefinder import Line3D, Line_KNN
 
-test0 = {
+test1 = {
     "variance" : 0.2,
-    "lines" : [(([4,0,0], [4,0,3.6576])), ([-6, 0, 0], [-6,0,3.6576]),
-                (([4,9.144,0], [4,9.144,3.6576])), ([-6, 9.144, 0], [-6,9.144,3.6576])],
+    "lines" : [(([300,0,0], [300,0,3.6576])), ([-300, 0, 0], [-300,0,3.6576]),
+               (([0,300,0], [0,300,3.6576])), ([0, -300, 0], [0,-300,3.6576])],
     "interval" : 0.05,
-    "bounds" : {'x': (-40, 40), 'y': (-40, 40), 'z': (-30, 50)},
+    "bounds" : {'x': (-330, 330), 'y': (-330, 330), 'z': (-2, 6)},
     "probability" : 0.975,
     "initial_number_of_lines" : 10,
-    "noise" : 0.02
+    "noise" : 0.9
 }
 
-test1 = {
+test2 = {
     "variance" : 0.5,
     "lines" : [(([30,0,0], [0,0,0])),(([-10,30,0], [0,0,0])), ([5, 5, 3], [5,9,8]),
                 ([20, -9, -3], [25,-3,-9]), ([15,10,0], [20,35,0]),
@@ -31,17 +31,20 @@ test1 = {
     "noise" : 0.02
 }
 
-test2 = {
-    "variance" : 0.2,
-    "lines" : [(([4,0,0], [4,0,3.6576])), ([-6, 0, 0], [-6,0,3.6576]),
-                (([4,9.144,0], [4,9.144,3.6576])), ([-6, 9.144, 0], [-6,9.144,3.6576]),
-                (([5,18.288,0], [5,18.288,3.6576])), ([-5, 18.288, 0], [-5,18.288,3.6576]),
-                (([5.6,27.432,0], [5.6,27.432,3.6576])), ([-4.4, 27.432, 0], [-4.4,27.432,3.6576]),
-                (([6.2,36.576,0], [6.2,36.576,3.6576])), ([-3.8, 36.576, 0], [-3.8,36.576,3.6576]),
-                (([4,-9.144,0], [4,-9.144,3.6576])), ([-6, -9.144, 0], [-6,-9.144,3.6576]),
-                (([4,-18.288,0], [4,-18.288,3.6576])), ([-6, -18.288, 0], [-6,-18.288,3.6576]),
-                (([4,-27.432,0], [4,-27.432,3.6576])), ([-6, -27.432, 0], [-6,-27.432,3.6576]),
-                (([4,-36.576,0], [4,-36.576,3.6576])), ([-6, -36.576, 0], [-6,-36.576,3.6576]),],
+test3 = {
+    "variance" : 0.1,
+    "lines" : [(([4.5,0,0], [4.5,0,3.6576])), ([-6.5, 0, 0], [-6.5,0,3.6576]),
+                (([4.5,9.144,0], [4.5,9.144,3.6576])), ([-6, 9.144, 0], [-6,9.144,3.6576]),
+                (([5.5,18.288,0], [5.5,18.288,3.6576])), ([-5.5, 18.288, 0], [-5.5,18.288,3.6576]),
+                (([6.1,27.432,0], [6.1,27.432,3.6576])), ([-4.9, 27.432, 0], [-4.9,27.432,3.6576]),
+                (([6.7,36.576,0], [6.7,36.576,3.6576])), ([-3.8, 36.576, 0], [-3.8,36.576,3.6576]),
+                (([4.5,-9.144,0], [4.5,-9.144,3.6576])), ([-6.5, -9.144, 0], [-6.5,-9.144,3.6576]),
+                (([4.5,-18.288,0], [4.5,-18.288,3.6576])), ([-6.5, -18.288, 0], [-6.5,-18.288,3.6576]),
+                (([4.5,-27.432,0], [4.5,-27.432,3.6576])), ([-6.5, -27.432, 0], [-6.5,-27.432,3.6576]),
+                (([4.5,-36.576,0], [4.5,-36.576,3.6576])), ([-6.5, -36.576, 0], [-6.5,-36.576,3.6576]),  #lightpoles
+                (([3,3,0], [3,3,0.7])), (([-5,-15,0], [-5,-15,0.7])), (([4,-30,0], [4,-30,0.7])), (([24,-30,0], [24,-30,0.7])),#small pole structures such as fire hydrants
+                (([-9,-5,0], [-9,-5,6])) #large pole structure such as billboards
+                ],
     "interval" : 0.01,
     "bounds" : {'x': (-10, 10), 'y': (-40, 40), 'z': (-2, 10)},
     "probability" : 0.975,
@@ -50,7 +53,7 @@ test2 = {
 }
 
 
-tests_arr = [test0, test1, test2]
+tests_arr = [test1, test2, test3]
 
 def generate_ptcld_from_test(test):
     lines = []
@@ -134,11 +137,9 @@ def run_line_knn(test_data, iterations = 20, output_test_data = False, verbose =
         l.skLine.plot_3d(ax, t_1=0, t_2=l.length, c='y')
     ax.set_title("final output without ptcld")
 
-    plt.show()
-
 def visualize_test(test):
     ptcld, lines = generate_ptcld_from_test(test)
-    fig = plt.figure(2) 
+    fig = plt.figure(0) 
     ax = fig.add_subplot(111,projection='3d') 
     ax.axes.set_xlim3d(left=test['bounds']['x'][0], right=test['bounds']['x'][1]) 
     ax.axes.set_ylim3d(bottom=test['bounds']['y'][0], top=test['bounds']['y'][1]) 
@@ -148,10 +149,9 @@ def visualize_test(test):
     for l in lines:
         l.skLine.plot_3d(ax, t_1=0, t_2=l.length, c='k')
 
-    # points = Points(ptcld)
-    # points.plot_3d(ax, c='b', depthshade=False, s=0.04)
+    ax.set_title("ground truth")
     
-    plt.show()
+    
     
 
 
@@ -166,13 +166,15 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output', action='store_true')
     args = parser.parse_args()
 
-    t = tests_arr[int(args.test)]
-    i = args.iterations
+    t = tests_arr[int(args.test)-1]
+    i = int(args.iterations)
     o = args.output
     v = args.verbose
     
     run_line_knn(t, iterations = i, output_test_data = o, verbose = v)
     visualize_test(t)
+
+    plt.show()
     
 
 

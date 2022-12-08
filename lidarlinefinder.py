@@ -3,9 +3,7 @@ import scipy.stats
 from skspatial.plotting import plot_3d
 import numpy as np
 import math
-import matplotlib.pyplot as plt
 import time
-import itertools
 
 
 class Line3D: 
