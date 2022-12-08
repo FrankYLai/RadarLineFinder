@@ -298,10 +298,13 @@ class Line_KNN:
         """
         if len(self.unused_points) == 0:
             return
-        start, end = self.start_end_from_ptcld(self.unused_points)
-        l = Line3D(start, end)
+        # start, end = self.start_end_from_ptcld(self.unused_points)
+        # l = Line3D(start, end)
+        selection = np.random.choice(len(self.unused_points), 2, replace = False)
+        l = Line3D(self.unused_points[selection[0]], self.unused_points[selection[1]])
         self.lines.append(l)
         self.line_pointclouds[l] = []
+
 
 
     def fit(self, iterations = 1):
@@ -322,8 +325,8 @@ class Line_KNN:
             self.point_segmentation()
             self.update_lines()
             self.segment_line()
-            if self.check_lines_settle() and len(self.unused_points)/sum(self.used_points)>0.2:
-                #print("_______________generate new line_______________")
+            if self.check_lines_settle() and len(self.unused_points)/(sum(self.used_points)+len(self.unused_points))>0.2:
+                # print("_______________generate new line_______________")
                 self.line_from_all_unused()
                 self.point_segmentation()
                 self.update_lines()
@@ -367,14 +370,6 @@ class Line_KNN:
         """
         destructable_lines = []
         for line in self.line_pointclouds:
-            # points = Points(self.line_pointclouds[line])
-            # lobf = Line.best_fit(points)
-            
-            # dists = lobf.transform_points(points)
-            # min_dist = min(dists)
-            # max_dist = max(dists)
-            # start = lobf.point+lobf.direction*min_dist
-            # end = lobf.point+lobf.direction*max_dist
             if len(self.line_pointclouds[line]) < 10:
                 destructable_lines.append(line)
             else:

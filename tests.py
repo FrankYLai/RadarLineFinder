@@ -17,25 +17,29 @@ test1 = {
     "interval" : 0.1,
     "bounds" : {'x': (-50, 50), 'y': (-50, 50), 'z': (-50, 50)},
     "probability" : 0.975,
-    "initial_number_of_lines" : 3
+    "initial_number_of_lines" : 3,
+    "noise" : 0.02
 }
 
 test2 = {
     "variance" : 0.2,
     "lines" : [(([4,0,0], [4,0,3.6576])), ([-6, 0, 0], [-6,0,3.6576]),
                 (([4,9.144,0], [4,9.144,3.6576])), ([-6, 9.144, 0], [-6,9.144,3.6576]),
-                (([4,18.288,0], [4,18.288,3.6576])), ([-6, 18.288, 0], [-6,18.288,3.6576]),
-                (([4,27.432,0], [4,27.432,3.6576])), ([-6, 27.432, 0], [-6,27.432,3.6576]),
-                (([4,36.576,0], [4,36.576,3.6576])), ([-6, 36.576, 0], [-6,36.576,3.6576]),
+                (([5,18.288,0], [5,18.288,3.6576])), ([-5, 18.288, 0], [-5,18.288,3.6576]),
+                (([5.6,27.432,0], [5.6,27.432,3.6576])), ([-4.4, 27.432, 0], [-4.4,27.432,3.6576]),
+                (([6.2,36.576,0], [6.2,36.576,3.6576])), ([-3.8, 36.576, 0], [-3.8,36.576,3.6576]),
                 (([4,-9.144,0], [4,-9.144,3.6576])), ([-6, -9.144, 0], [-6,-9.144,3.6576]),
                 (([4,-18.288,0], [4,-18.288,3.6576])), ([-6, -18.288, 0], [-6,-18.288,3.6576]),
                 (([4,-27.432,0], [4,-27.432,3.6576])), ([-6, -27.432, 0], [-6,-27.432,3.6576]),
                 (([4,-36.576,0], [4,-36.576,3.6576])), ([-6, -36.576, 0], [-6,-36.576,3.6576]),],
-    "interval" : 0.05,
-    "bounds" : {'x': (-40, 40), 'y': (-40, 40), 'z': (-30, 50)},
+    "interval" : 0.01,
+    "bounds" : {'x': (-10, 10), 'y': (-40, 40), 'z': (-2, 10)},
     "probability" : 0.975,
-    "initial_number_of_lines" : 10
+    "initial_number_of_lines" : 10,
+    "noise" : 0.02
 }
+
+tests_arr = [test1, test2]
 
 
 def generate_ptcld_from_test(test):
@@ -48,7 +52,7 @@ def generate_ptcld_from_test(test):
         ptclds.append(np.array(p))
     
     ptcld_comb = np.concatenate(tuple(ptclds))
-    n_rand = int(np.ceil(0.01*ptcld_comb.shape[0]))
+    n_rand = int(np.ceil(test['noise']*ptcld_comb.shape[0]))
     x_rand = (test['bounds']['x'][1] - test['bounds']['x'][0]) * np.random.random_sample(n_rand) + test['bounds']['x'][0]
     y_rand = (test['bounds']['y'][1] - test['bounds']['y'][0]) * np.random.random_sample(n_rand) + test['bounds']['y'][0]
     z_rand = (test['bounds']['z'][1] - test['bounds']['z'][0]) * np.random.random_sample(n_rand) + test['bounds']['z'][0]
@@ -57,11 +61,36 @@ def generate_ptcld_from_test(test):
 
     return ptcld_comb, lines
 
-def run_line_knn(test_data, iterations = 20):
+def run_line_knn(test_data, iterations = 20, output_test_data = False, verbose = False):
     ptcld, lines = generate_ptcld_from_test(test_data)
+    
+    if output_test_data:
+        np.savetxt('ptcld.txt', np.array(ptcld), delimiter = ',')
     classifier = Line_KNN(ptcld, test_data['variance'], test_data["probability"], test_data["initial_number_of_lines"])
     
-    classifier.fit(iterations)
+    if verbose:
+        for i in range(iterations):
+            fig = plt.figure(10+i) 
+            ax = fig.add_subplot(111,projection='3d') 
+            ax.axes.set_xlim3d(left=test_data['bounds']['x'][0], right=test_data['bounds']['x'][1]) 
+            ax.axes.set_ylim3d(bottom=test_data['bounds']['y'][0], top=test_data['bounds']['y'][1]) 
+            ax.axes.set_zlim3d(bottom=test_data['bounds']['z'][0], top=test_data['bounds']['z'][1])
+
+            for l in classifier.lines:
+                points = Points(classifier.line_pointclouds[l])
+                l.skLine.plot_3d(ax, t_1=0, t_2=l.length, c='y')
+                points.plot_3d(ax, c='b', depthshade=False, s=0.1)
+            
+            if not classifier.unused_points == []:
+                unused_points = Points(classifier.unused_points)
+                unused_points.plot_3d(ax, c='k',depthshade=False,s=0.1)
+            
+            ax.set_title("iteration "+str(i))
+
+            classifier.fit() 
+
+    else:
+        classifier.fit(iterations)
     
     fig = plt.figure(1) 
     ax = fig.add_subplot(111,projection='3d') 
@@ -69,18 +98,26 @@ def run_line_knn(test_data, iterations = 20):
     ax.axes.set_ylim3d(bottom=test_data['bounds']['y'][0], top=test_data['bounds']['y'][1]) 
     ax.axes.set_zlim3d(bottom=test_data['bounds']['z'][0], top=test_data['bounds']['z'][1])
 
-    #plot ground truth lines in red:
-    for l in lines:
-        l.skLine.plot_3d(ax, t_1=0, t_2=l.length, c='r')
-
     for l in classifier.lines:
         points = Points(classifier.line_pointclouds[l])
         l.skLine.plot_3d(ax, t_1=0, t_2=l.length, c='y')
-        points.plot_3d(ax, c='b', depthshade=False, s=0.01)
+        points.plot_3d(ax, c='b', depthshade=False, s=0.1)
     
     if not classifier.unused_points == []:
         unused_points = Points(classifier.unused_points)
-        unused_points.plot_3d(ax, c='k',depthshade=False,s=0.01)
+        unused_points.plot_3d(ax, c='k',depthshade=False,s=0.1)
+
+    ax.set_title("final output with ptcld")
+   
+    fig = plt.figure(2) 
+    ax = fig.add_subplot(111,projection='3d') 
+    ax.axes.set_xlim3d(left=test_data['bounds']['x'][0], right=test_data['bounds']['x'][1]) 
+    ax.axes.set_ylim3d(bottom=test_data['bounds']['y'][0], top=test_data['bounds']['y'][1]) 
+    ax.axes.set_zlim3d(bottom=test_data['bounds']['z'][0], top=test_data['bounds']['z'][1])
+
+    for l in classifier.lines:
+        l.skLine.plot_3d(ax, t_1=0, t_2=l.length, c='y')
+    ax.set_title("final output without ptcld")
 
     plt.show()
 
@@ -96,16 +133,32 @@ def visualize_test(test):
     for l in lines:
         l.skLine.plot_3d(ax, t_1=0, t_2=l.length, c='k')
 
-    points = Points(ptcld)
-    points.plot_3d(ax, c='b', depthshade=False, s=0.04)
+    # points = Points(ptcld)
+    # points.plot_3d(ax, c='b', depthshade=False, s=0.04)
     
     plt.show()
     
 
 
 if __name__ == '__main__':
-    run_line_knn(test2, iterations = 30)
-    # visualize_test(test2)
+    import argparse
+    parser = argparse.ArgumentParser(
+                    prog = 'test_lidarlinefinder',
+                    description = 'runs a series of tests to test the line classifier')
+    parser.add_argument('test')
+    parser.add_argument('-i', '--iterations', required = False, default=20)
+    parser.add_argument('-v', '--verbose', action='store_true')  
+    parser.add_argument('-o', '--output', action='store_true')
+
+    args = parser.parse_args()
+
+    t = tests_arr[args.test]
+    i = args.iterations
+    o = args.output
+    v = args.verbose
+    
+    run_line_knn(t, iterations = i, output_test_data = o, verbose = v)
+    # visualize_test(t)
     
 
 
