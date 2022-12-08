@@ -129,9 +129,6 @@ class Line3D:
         """ 
         return (np.allclose(self.direction, other.direction,atol=2*atol) and (self.get_dist(other.s) < atol or self.get_dist(other.e) < atol)) 
 
-    def __hash__(self):
-        return id(self)
-
 class Line_KNN: 
     """
     A KNN classifier to detect lines in 3D space.
@@ -181,7 +178,6 @@ class Line_KNN:
         """ 
         selection = np.random.choice(self.pointcloud.shape[0], 2, replace = False)
         return Line3D(self.pointcloud[selection[0]], self.pointcloud[selection[1]])
-        # return Line3D(self.pointcloud[-1], self.pointcloud[30])
 
     def get_dist(self, point, line):
         """
@@ -323,7 +319,7 @@ class Line_KNN:
             self.point_segmentation()
             self.update_lines()
             self.segment_line()
-            if self.check_lines_settle() and len(self.unused_points)/(sum(self.used_points)+len(self.unused_points))>0.2:
+            if self.check_lines_settle() and len(self.unused_points)/(sum(self.used_points) + len(self.unused_points)) > 0.2:
                 # print("_______________generate new line_______________")
                 self.line_from_all_unused()
                 self.point_segmentation()
@@ -478,12 +474,11 @@ class Line_KNN:
         del_list = []
         for base in lines:
             for other in lines:
-                if base.isclose(other) and base != other and other not in del_list:
+                if base.isclose(other) and base != other and other not in del_list and base not in del_list:
                     self.line_pointclouds[base].extend(self.line_pointclouds[other])
                     del_list.append(other)
 
             start, end = self.start_end_from_ptcld(self.line_pointclouds[base])
             base.update_line(start, end)
-
         for item in del_list:
             self.destruct_line(item)
