@@ -9,7 +9,9 @@ pip install -r requirements.txt
 Then run ```tests.py``` as an executable with the command line arguments below
 
 Example:
+```
 python tests.py 1 -i 15
+```
 
 ## Command Line Arguments
 ```
