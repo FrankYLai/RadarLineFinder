@@ -18,7 +18,3 @@ test: Number id of the test. Currently 3 tests supported with ids [1,2,3]. Requi
 
 -v: if used, outputs figures and text for each single iteration. Default: False
 ```
-Example, to run test 2 for 30 iterations
-
-```
-./tests
