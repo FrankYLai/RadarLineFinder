@@ -5,7 +5,6 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 import time
-import itertools
 from lidarlinefinder import Line3D, KLinesCluster
 
 test1 = {
