@@ -10,7 +10,7 @@ Then run ```tests.py``` as an executable with the command line arguments below
 
 ## Command Line Arguments
 ```
-test: Number id of the test. Currently 3 tests supported with ids [1,2,3]. Required
+test: Number id of the test. Currently 3 tests supported with ids [1,2,3]. Corresponds to the test numbers as seen in the report. Required
 
 -i, --iterations: Number of iterations to run the fit function. Default: 20
 

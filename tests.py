@@ -107,7 +107,7 @@ def run_KLinesCluster(test_data, iterations = 20, output_test_data = False, verb
         classifier.fit(iterations)
         
     end = time.time()
-    print("Time taken:",round(end - start), " seconds")
+    print("Time taken:",round(end - start, 5), " seconds")
     
     fig = plt.figure(1) 
     ax = fig.add_subplot(111,projection='3d') 
