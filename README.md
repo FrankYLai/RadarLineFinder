@@ -8,6 +8,9 @@ pip install -r requirements.txt
 ```
 Then run ```tests.py``` as an executable with the command line arguments below
 
+Example:
+python tests.py 1 -i 15
+
 ## Command Line Arguments
 ```
 test: Number id of the test. Currently 3 tests supported with ids [1,2,3]. Required
