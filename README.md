@@ -13,7 +13,7 @@ python tests.py 1 -i 15
 
 ## Command Line Arguments
 ```
-test: Number id of the test. Currently 3 tests supported with ids [1,2,3]. Required
+test: Number id of the test. Currently 3 tests supported with ids [1,2,3]. Corresponds to the test numbers as seen in the report. Required
 
 -i, --iterations: Number of iterations to run the fit function. Default: 20
 
