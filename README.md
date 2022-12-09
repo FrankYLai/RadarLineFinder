@@ -2,9 +2,9 @@
 > By Frank Lai, Nick Shaju
 
 ## How to run
-Install scikit spatial
+Install dependencies 
 ```
-pip install scikit-spatial
+pip install -r requirements.txt
 ```
 Then run ```tests.py``` as an executable with the command line arguments below
 
