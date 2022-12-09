@@ -129,7 +129,7 @@ class Line3D:
         """ 
         return (np.allclose(self.direction, other.direction,atol=2*atol) and (self.get_dist(other.s) < atol or self.get_dist(other.e) < atol)) 
 
-class Line_KNN: 
+class KLinesCluster: 
     """
     A KNN classifier to detect lines in 3D space.
 

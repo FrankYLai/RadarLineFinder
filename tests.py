@@ -6,7 +6,7 @@ import math
 import matplotlib.pyplot as plt
 import time
 import itertools
-from lidarlinefinder import Line3D, Line_KNN
+from lidarlinefinder import Line3D, KLinesCluster
 
 test1 = {
     "variance" : 0.2,
@@ -42,13 +42,13 @@ test3 = {
                 (([4.5,-18.288,0], [4.5,-18.288,3.6576])), ([-6.5, -18.288, 0], [-6.5,-18.288,3.6576]),
                 (([4.5,-27.432,0], [4.5,-27.432,3.6576])), ([-6.5, -27.432, 0], [-6.5,-27.432,3.6576]),
                 (([4.5,-36.576,0], [4.5,-36.576,3.6576])), ([-6.5, -36.576, 0], [-6.5,-36.576,3.6576]),  #lightpoles
-                (([3,3,0], [3,3,0.7])), (([-5,-15,0], [-5,-15,0.7])), (([4,-30,0], [4,-30,0.7])), (([24,-30,0], [24,-30,0.7])),#small pole structures such as fire hydrants
+                (([3,3,0], [3,3,0.7])), (([-5,-15,0], [-5,-15,0.7])), (([4,-30,0], [4,-30,0.7])), (([7,-30,0], [7,-30,0.7])),#small pole structures such as fire hydrants
                 (([-9,-5,0], [-9,-5,6])) #large pole structure such as billboards
                 ],
     "interval" : 0.01,
     "bounds" : {'x': (-10, 10), 'y': (-40, 40), 'z': (-2, 10)},
     "probability" : 0.975,
-    "initial_number_of_lines" : 20,
+    "initial_number_of_lines" : 5,
     "noise" : 0.02
 }
 
@@ -74,12 +74,12 @@ def generate_ptcld_from_test(test):
 
     return ptcld_comb, lines
 
-def run_line_knn(test_data, iterations = 20, output_test_data = False, verbose = False):
+def run_KLinesCluster(test_data, iterations = 20, output_test_data = False, verbose = False):
     ptcld, lines = generate_ptcld_from_test(test_data)
     
     if output_test_data:
         np.savetxt('ptcld.txt', np.array(ptcld), delimiter = ',')
-    classifier = Line_KNN(ptcld, test_data['variance'], test_data["probability"], test_data["initial_number_of_lines"])
+    classifier = KLinesCluster(ptcld, test_data['variance'], test_data["probability"], test_data["initial_number_of_lines"])
     
     start = time.time()
     if verbose:
@@ -151,9 +151,6 @@ def visualize_test(test):
 
     ax.set_title("ground truth")
     
-    
-    
-
 
 if __name__ == '__main__':
     import argparse
@@ -171,17 +168,8 @@ if __name__ == '__main__':
     o = args.output
     v = args.verbose
     
-    run_line_knn(t, iterations = i, output_test_data = o, verbose = v)
+    run_KLinesCluster(t, iterations = i, output_test_data = o, verbose = v)
     visualize_test(t)
 
     plt.show()
     
-
-
-
-
-    
-
-
-
-
